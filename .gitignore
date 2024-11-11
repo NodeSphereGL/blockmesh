@@ -1,0 +1,5 @@
+.env
+.vscode/
+blockmesh_docker/.env
+proxy/list.txt
+.DS_Store

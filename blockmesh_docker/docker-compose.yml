@@ -1,0 +1,18 @@
+networks:
+  block-mesh-dophin:
+    driver: bridge
+
+services:
+  mesh001:
+    image: toanbk/blockmesh:latest
+    environment:
+      - EMAIL=${EMAIL_001}
+      - PASSWORD=${PASSWORD_001}
+      - http_proxy=${PROXY_001}
+      - HTTP_PROXY=${PROXY_001}
+      - https_proxy=${PROXY_001}
+      - HTTPS_PROXY=${PROXY_001}
+      - no_proxy=${NO_PROXY}
+      - NO_PROXY=${NO_PROXY}
+    restart: always
+

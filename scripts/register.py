@@ -13,7 +13,8 @@ excel_path = os.path.join(base_path, '../data/blockmesh.xlsx')
 df = pd.read_excel(excel_path, header=None, engine='openpyxl')
 
 # Define proxy
-proxy = 'http://sp4vawi47u:cqpaGruFLb9~2Rp98y@gate.smartproxy.com:7000'
+# proxy = 'http://sp4vawi47u:cqpaGruFLb9~2Rp98y@gate.smartproxy.com:7000'
+proxy = 'http://user-sp4vawi47u-sessionduration-1:cqpaGruFLb9~2Rp98y@gate.smartproxy.com:10001'
 
 # Function to get confirmation link with retry logic
 def get_confirmation_link(client_id, refresh_token, retries=3, delay=10):

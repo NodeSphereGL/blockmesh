@@ -1,9 +1,16 @@
 import os
 import requests
 import json
+import time
+import random
+
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
 from itertools import cycle
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -31,6 +38,71 @@ proxy_pool = load_proxies()
 # Function to get a single proxy
 def get_proxy():
     return next(proxy_pool)
+
+
+def get_random_proxy_key():
+    """
+    Select a random proxy key from the list of keys.
+    """
+    # Get proxy keys from .env file
+    proxy_keys = os.getenv("PROXY_KEYS", "").split(",")
+
+    if not proxy_keys or proxy_keys == [""]:
+        raise ValueError("No proxy keys found in .env file. Please set PROXY_KEYS.")
+    
+    return random.choice(proxy_keys)
+
+def get_rotate_proxy():
+    """
+    Get a rotating proxy using the specified rules with multiple proxy keys.
+    
+    :param proxy_keys: A list of proxy keys to use for the API requests.
+    :return: A dictionary containing the proxy details (e.g., IP and port), or None if all attempts fail.
+    """
+    base_url = "https://wwproxy.com/api/client/proxy"
+    headers = {"Content-Type": "application/json"}
+    
+    # Step 1: Get a random proxy key
+    proxy_key = get_random_proxy_key()
+    print(f"Selected proxy key: {proxy_key}")
+    
+    # Step 2: Call the `available` API
+    available_url = f"{base_url}/available?key={proxy_key}&provinceId=-1"
+    try:
+        response = requests.get(available_url, headers=headers)
+        response_data = response.json()
+        
+        if response_data.get("status") == "OK" and "proxy" in response_data.get("data", {}):
+            print("Successfully retrieved proxy from 'available' API.")
+            return response_data["data"]["proxy"]
+        else:
+            print("Failed to get proxy from 'available' API:", response_data.get("message"))
+    except requests.RequestException as e:
+        print(f"Error calling 'available' API: {e}")
+    
+    # Step 3: Fall back to the `current` API with retries
+    current_url = f"{base_url}/current?key={proxy_key}"
+    retry_attempts = 3
+    for attempt in range(retry_attempts):
+        try:
+            response = requests.get(current_url, headers=headers)
+            response_data = response.json()
+            
+            if response_data.get("status") == "OK" and "proxy" in response_data.get("data", {}):
+                print(f"Successfully retrieved proxy from 'current' API on attempt {attempt + 1}.")
+                return response_data["data"]["proxy"]
+            else:
+                print(f"Attempt {attempt + 1} failed for 'current' API:", response_data.get("message"))
+        except requests.RequestException as e:
+            print(f"Error calling 'current' API on attempt {attempt + 1}: {e}")
+        
+        # Delay before retrying
+        if attempt < retry_attempts - 1:
+            print("Retrying in 3 seconds...")
+            time.sleep(3)
+    
+    print("All attempts to retrieve proxy failed.")
+    return None
 
 # Function to get a new token
 def get_new_token(client_id, refresh_token, proxy):
@@ -109,6 +181,15 @@ def extract_teneo_confirmation_link(messages):
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({"message": "Hotmail Services Management"})
+
+# Define the /get-proxy endpoint
+@app.route('/get-proxy', methods=['GET'])
+def get_proxy_endpoint():
+    proxy = get_rotate_proxy()
+    if proxy:
+        return proxy, 200  # Return the proxy as plain text
+    else:
+        return "No proxy available", 500  # Return error if no proxy is retrieved
 
 @app.route('/block-mesh-confirmation', methods=['POST'])
 def get_blockmesh_confirmation_link():

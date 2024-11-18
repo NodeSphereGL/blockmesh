@@ -3,6 +3,7 @@ import requests
 import json
 import time
 import random
+import re
 
 from flask import Flask, request, jsonify
 from bs4 import BeautifulSoup
@@ -174,7 +175,7 @@ def extract_teneo_confirmation_link(messages):
         if message.get("subject") == "Confirm Your Signup":
             body_content = message.get("body", {}).get("content", "")
             soup = BeautifulSoup(body_content, 'html.parser')
-            confirmation_link = soup.find("a", text="Confirm Sign Up")
+            confirmation_link = soup.find("a", string=re.compile(r"Confirm Sign Up"))
             if confirmation_link and confirmation_link.get("href"):
                 return confirmation_link["href"]
     return None

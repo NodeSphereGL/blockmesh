@@ -134,6 +134,7 @@ def get_messages(token, folder, proxy):
 # Get Hotmail messages
 def get_hotmail_messages(client_id, refresh_token, proxy):
     token_response = get_new_token(client_id, refresh_token, proxy)
+    print(f"New token: {token_response}")
     access_token = token_response.get('access_token')
 
     if access_token:

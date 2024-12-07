@@ -180,6 +180,25 @@ def extract_teneo_confirmation_link(messages):
                 return confirmation_link["href"]
     return None
 
+def extract_nexus_confirmation_link(messages):
+    for message in messages.get("value", []):
+        sender_address = (
+                message.get("from", {})
+                .get("emailAddress", {})
+                .get("address", "")
+            )
+        if sender_address != "noreply@nexus.xyz":
+            continue  # Skip if the sender's address does not match
+        
+        if "Sign in to Nexus" in message.get("subject", ""):
+            body_content = message.get("body", {}).get("content", "")
+            soup = BeautifulSoup(body_content, 'html.parser')
+            confirmation_link = soup.find("a", string=re.compile(r"Sign in to Nexus.*"))
+
+            if confirmation_link and confirmation_link.get("href"):
+                return confirmation_link["href"]
+    return None
+
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({"message": "Hotmail Services Management"})
@@ -233,6 +252,28 @@ def get_teneo_confirmation_link():
         return jsonify({"error": "Failed to retrieve messages"}), 500
     
     confirm_link = extract_teneo_confirmation_link(messages)
+    if confirm_link:
+        return jsonify({"confirm_link": confirm_link}), 200
+    else:
+        return jsonify({"error": "Confirmation email not found"}), 404
+
+@app.route('/nexus-confirmation', methods=['POST'])
+def get_nexus_confirmation_link():
+    data = request.get_json()
+    client_id = data.get("client_id")
+    refresh_token = data.get("refresh_token")
+
+    if not client_id or not refresh_token:
+        return jsonify({"error": "client_id and refresh_token are required"}), 400
+
+    proxy = get_proxy()  # Select a single proxy for this request
+    print(f"get data under proxy: {proxy}")
+
+    messages = get_hotmail_messages(client_id, refresh_token, proxy)
+    if messages is None:
+        return jsonify({"error": "Failed to retrieve messages"}), 500
+    
+    confirm_link = extract_nexus_confirmation_link(messages)
     if confirm_link:
         return jsonify({"confirm_link": confirm_link}), 200
     else:
